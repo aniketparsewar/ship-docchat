@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShipDocChat</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+  input, textarea, button { font-size: 1rem; padding: .5rem; margin: .25rem 0; }
+  textarea, input[type=text], input[type=password], input[type=file] { width: 100%; box-sizing: border-box; }
+  #answer { white-space: pre-wrap; background: #f6f6f6; padding: 1rem; border-radius: 8px; }
+  .meta { color: #555; font-size: .85rem; }
+  .demo { background: #fff8e1; padding: .75rem; border-radius: 8px; font-size: .9rem; }
+</style>
+</head>
+<body>
+<h1>ShipDocChat</h1>
+<p class="demo"><strong>Demo:</strong> answers come from a <em>fictional</em> Nebula Bank
+sample statement generated for testing — not real financial data.</p>
+
+<label>API key <input type="password" id="key" placeholder="X-API-Key"></label>
+
+<h2>1. Upload a PDF</h2>
+<input type="file" id="pdf" accept="application/pdf">
+<button onclick="upload()">Upload &amp; ingest</button>
+<p class="meta" id="uploadMeta"></p>
+
+<h2>2. Ask a question</h2>
+<textarea id="q" rows="3" placeholder="What is my new balance?"></textarea>
+<button onclick="ask()">Ask</button>
+<div id="answer"></div>
+<p class="meta" id="askMeta"></p>
+
+<p><a href="/metrics" id="metricsLink">/metrics</a> <span class="meta">(needs API key — open in a tab after entering it above, or curl with the header)</span></p>
+
+<script>
+const headers = () => ({"X-API-Key": document.getElementById("key").value});
+async function upload() {
+  const f = document.getElementById("pdf").files[0];
+  if (!f) return alert("Choose a PDF first.");
+  const fd = new FormData(); fd.append("file", f);
+  const r = await fetch("/upload", {method: "POST", headers: headers(), body: fd});
+  const j = await r.json();
+  document.getElementById("uploadMeta").textContent =
+    r.ok ? `Ingested ${j.chunks} chunks from ${j.pages} pages in ${j.latency_ms}ms (~$${j.embed_cost_usd})`
+         : `Error ${r.status}: ${j.detail}`;
+}
+async function ask() {
+  const q = document.getElementById("q").value;
+  const r = await fetch("/ask", {method: "POST",
+    headers: {...headers(), "Content-Type": "application/json"},
+    body: JSON.stringify({question: q})});
+  const j = await r.json();
+  if (!r.ok) { document.getElementById("answer").textContent = `Error ${r.status}: ${j.detail}`; return; }
+  document.getElementById("answer").textContent = j.answer;
+  document.getElementById("askMeta").textContent =
+    `${j.latency_ms}ms · ${j.input_tokens} in / ${j.output_tokens} out tokens · ~$${j.cost_usd}` +
+    (j.refused ? " · refused" : ` · chunk scores [${j.chunk_scores.join(", ")}]`);
+}
+</script>
+</body>
+</html>

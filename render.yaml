@@ -1,0 +1,18 @@
+# Render Blueprint: deploy with `render.yaml` at the repo root.
+services:
+  - type: web
+    name: ship-docchat
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false            # set in the Render dashboard (secret)
+      - key: API_KEY
+        generateValue: true    # Render generates a random value
+      - key: MIN_SCORE
+        value: "0.3"
+      - key: TOP_K
+        value: "3"
+      - key: RATE_LIMIT_PER_MIN
+        value: "30"
