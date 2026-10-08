@@ -49,11 +49,13 @@ async def upload(file: UploadFile = File(...),
     data = await file.read()
     guardrails.check_pdf(data, file.filename or "upload.pdf")
     try:
+        guardrails.check_page_count(rag_service.count_pdf_pages(data))
         result = rag_service.ingest_pdf(data)
+    except HTTPException:
+        raise  # 422 from check_page_count passes through untouched
     except Exception as e:  # e.g. corrupt PDF that passed magic bytes
         raise HTTPException(status_code=422,
                             detail=f"Could not parse PDF: {e}")
-    guardrails.check_page_count(result["pages"])
     latency_ms = round((time.perf_counter() - t0) * 1000, 1)
     observability.log_event({
         "endpoint": "upload",

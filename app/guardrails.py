@@ -60,6 +60,13 @@ def check_page_count(pages: int) -> None:
             detail=f"PDF has {pages} pages (max {MAX_PAGES}).",
         )
 
+# rag_service.py
+def count_pdf_pages(data: bytes) -> int:
+    """Cheap page count from raw bytes: no extraction, no embedding."""
+    import fitz  # local import: only needed on the upload path
+    with fitz.open(stream=data, filetype="pdf") as doc:
+        return len(doc)
+
 
 def check_question(question: str) -> str:
     q = question.strip()
