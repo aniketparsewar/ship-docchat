@@ -30,6 +30,20 @@ def load_store() -> tuple[int, bool]:
         _chunks, _matrix = None, None
     return (len(_chunks) if _chunks else 0, _chunks is not None)
 
+def count_pdf_pages(data: bytes) -> int:
+    """Count pages in raw PDF bytes without extracting text or embedding.
+
+    Used by the upload endpoint to enforce the page cap *before*
+    spending money on embeddings.
+    """
+    import io
+    from pypdf import PdfReader
+    reader = PdfReader(io.BytesIO(data))
+    try:
+        return len(reader.pages)
+    finally:
+        del reader
+
 
 def store_ready() -> bool:
     return _chunks is not None

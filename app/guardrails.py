@@ -78,3 +78,25 @@ def check_question(question: str) -> str:
             detail=f"Question is {len(q)} chars (max {MAX_QUESTION_CHARS}).",
         )
     return q
+
+
+import time
+
+DAILY_BUDGET_USD = 1.00  # max spend per key per rolling 24h
+_spend: dict[str, list[tuple[float, float]]] = {}  # api_key -> [(unix_ts, cost_usd)]
+
+def _prune(key: str, now: float) -> float:
+    entries = [(t, c) for t, c in _spend.get(key, []) if t > now - 86400]
+    _spend[key] = entries
+    return sum(c for _, c in entries)
+
+def check_budget(api_key: str) -> None:
+    """Reject if this key already spent its daily budget. Call before /ask."""
+    if _prune(api_key, time.time()) >= DAILY_BUDGET_USD:
+        raise HTTPException(status_code=429, detail="Daily cost budget exceeded.")
+
+def record_spend(api_key: str, cost_usd: float) -> None:
+    """Record actual spend after the request completes."""
+    now = time.time()
+    _prune(api_key, now)
+    _spend[api_key].append((now, cost_usd))

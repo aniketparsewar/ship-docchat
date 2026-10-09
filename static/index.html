@@ -31,7 +31,9 @@ sample statement generated for testing — not real financial data.</p>
 <div id="answer"></div>
 <p class="meta" id="askMeta"></p>
 
-<p><a href="/metrics" id="metricsLink">/metrics</a> <span class="meta">(needs API key — open in a tab after entering it above, or curl with the header)</span></p>
+<h2>3. Metrics</h2>
+<button onclick="loadMetrics()">Load /metrics</button>
+<pre id="metricsOut" class="meta" style="white-space: pre-wrap;"></pre>
 
 <script>
 const headers = () => ({"X-API-Key": document.getElementById("key").value});
@@ -56,6 +58,12 @@ async function ask() {
   document.getElementById("askMeta").textContent =
     `${j.latency_ms}ms · ${j.input_tokens} in / ${j.output_tokens} out tokens · ~$${j.cost_usd}` +
     (j.refused ? " · refused" : ` · chunk scores [${j.chunk_scores.join(", ")}]`);
+}
+async function loadMetrics() {
+  const r = await fetch("/metrics", {headers: headers()});
+  const j = await r.json();
+  document.getElementById("metricsOut").textContent =
+    r.ok ? JSON.stringify(j, null, 2) : `Error ${r.status}: ${j.detail}`;
 }
 </script>
 </body>

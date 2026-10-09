@@ -45,6 +45,22 @@ def _pct(values: list[float], p: float) -> float:
     k = min(len(ordered) - 1, int(p / 100 * len(ordered)))
     return ordered[k]
 
+def replay() -> None:
+    if not LOG_FILE.exists():
+        return
+    with _lock:
+        for line in LOG_FILE.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                event = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            _events.append(event)
+            _latencies.setdefault(event["endpoint"], []).append(
+                event["latency_ms"])
+
+
 
 def get_metrics() -> dict:
     with _lock:

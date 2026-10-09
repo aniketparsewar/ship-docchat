@@ -101,6 +101,14 @@ async def ask(req: AskRequest,
     }
 
 
+@app.on_event("startup")
+def _startup() -> None:
+    observability.replay()
+    n , ok = rag_service.load_store()
+    print(f"Store: {n} chunks loaded." if ok else
+          "Store: empty — POST a PDF to /upload or run scripts/ingest.py.")
+
+
 @app.get("/metrics")
 def metrics(api_key: str = Depends(auth.require_key)) -> dict:
     guardrails.check_rate_limit(api_key)
