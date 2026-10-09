@@ -100,3 +100,7 @@ def record_spend(api_key: str, cost_usd: float) -> None:
     now = time.time()
     _prune(api_key, now)
     _spend[api_key].append((now, cost_usd))
+
+def budget_remaining(api_key: str) -> float:
+    """USD left in this key's rolling 24h budget."""
+    return max(0.0, DAILY_BUDGET_USD - _prune(api_key, time.time()))

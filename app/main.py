@@ -72,13 +72,16 @@ async def upload(file: UploadFile = File(...),
 async def ask(req: AskRequest,
               api_key: str = Depends(auth.require_key)) -> dict:
     guardrails.check_rate_limit(api_key)
+    guardrails.check_budget(api_key)
     question = guardrails.check_question(req.question)
     top_k = max(1, min(req.top_k, 5))
     try:
         result = rag_service.ask_question(question, top_k=top_k)
     except RuntimeError as e:
         raise HTTPException(status_code=503, detail=str(e))
+    guardrails.record_spend(api_key, result["cost_usd"])
     best_score = result["hits"][0][1] if result["hits"] else 0.0
+    remaining = guardrails.budget_remaining(api_key)
     observability.log_event({
         "endpoint": "ask",
         "latency_ms": result["latency_ms"],
@@ -88,6 +91,8 @@ async def ask(req: AskRequest,
         "cost_usd": result["cost_usd"],
         "refused": result["refused"],
         "best_score": round(best_score, 3),
+        "budget_usd": guardrails.DAILY_BUDGET_USD,
+        "budget_remaining": remaining,
     })
     return {
         "answer": result["answer"],
@@ -98,6 +103,8 @@ async def ask(req: AskRequest,
         "output_tokens": result.get("output_tokens", 0),
         "cost_usd": round(result["cost_usd"], 6),
         "refused": result["refused"],
+        "budget_usd": guardrails.DAILY_BUDGET_USD,
+        "budget_remaining": remaining,
     }
 
 
