@@ -6,3 +6,4 @@ tiktoken
 PyMuPDF
 numpy
 python-dotenv
+pypdf
